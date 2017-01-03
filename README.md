@@ -1,21 +1,11 @@
 Voice recognition based home assistant.
 This is a work in progress, no support is given.
 
-Uses CMU PocketSphinx. Requires handbuilt version on OS X. Don't use homebrew here.
+Currently uses your webbrowser speech engine. For best result use Google Chrome. Not Chromium.
+Requires MQTT 3.1 compliant server with Websockets. I use mqtt, but you have to compile from source to enable websockets.
 
-wget http://downloads.sourceforge.net/project/cmusphinx/sphinxbase/0.8/sphinxbase-0.8.tar.gz
-wget http://downloads.sourceforge.net/project/cmusphinx/pocketsphinx/0.8/pocketsphinx-0.8.tar.gz
-tar -zxvf sphinxbase-0.8.tar.gz
-tar -zxvf pocketsphinx-0.8.tar.gz
+Requires Domoticz to be on the receiving end of MQTT.
 
-cd ~/sphinxbase-0.8/
-./configure --enable-fixed
-make
-sudo make install
+Currently stores no data, so in order to use your devices, learn them on page load (e.g. trigger a switch from domoticz and it will get added to the list).
 
-cd ~/pocketsphinx-0.8/
-./configure
-make
-sudo make install
-
-Other platforms may use a package manager, your milage may vary.
+HARDCODED FOR DUTCH AT THE MOMENT. Only requires small changes for your locale, but  was no prio now.
