@@ -9,6 +9,8 @@ var pennyworth = pennyworth || {
     devices: [],
 
     init: function() {
+        pennyworth.restoreVariables();
+
         pennyworth.engine = new (webkitSpeechRecognition || mozSpeechRecognition || msSpeechRecognition || SpeechRecognition)();
         pennyworth.engine.lang = 'nl-NL';
         pennyworth.engine.continuous = false;
@@ -22,19 +24,22 @@ var pennyworth = pennyworth || {
 
         document.querySelector("#engine-threshold").addEventListener("change", function(ev) {
             pennyworth.threshold = ev.target.value;
+            localStorage.setItem("engine-threshold", pennyworth.threshold);
         });
 
-        document.querySelector("#mqtt-connect").addEventListener("click", function(ev) {
-            var unique = new Date().getTime();
-            pennyworth.mqtt = new Paho.MQTT.Client(
-                document.querySelector('#mqtt-host').value,
-                parseInt(document.querySelector('#mqtt-port').value),
-                'pennyworth-'+unique
-            );
-
-            pennyworth.mqtt.onMessageArrived = pennyworth.mqttMessage;
-            pennyworth.mqtt.connect({onSuccess: pennyworth.mqttConnected});
+        document.querySelector("#mqtt-host").addEventListener("change", function(ev) {
+            localStorage.setItem("mqtt-host", ev.target.value);
         });
+
+        document.querySelector("#mqtt-port").addEventListener("change", function(ev) {
+            localStorage.setItem("mqtt-port", ev.target.value);
+        });
+
+        document.querySelector("#devices").addEventListener("change", function(ev) {
+            localStorage.setItem("devices", ev.target.value);
+        });
+
+        document.querySelector("#mqtt-connect").addEventListener("click", pennyworth.connectMQTT);
 
     },
 
@@ -56,15 +61,12 @@ var pennyworth = pennyworth || {
             var aan = (str.indexOf("aan") > -1);
             var uit = (str.indexOf("uit") > -1);
 
-            var devices = document.querySelector("#devices").value.trim();
-            devices = devices.split("\n");
-
-            for (var i = 0; i < devices.length; i++) {
-                var elms = devices[i].split(",");
+            for (var i = 0; i < pennyworth.devices.length; i++) {
+                var elms = pennyworth.devices[i].split(",");
                 if (elms.length > 1) {
                     if (str.indexOf(elms[1].toLowerCase()) > -1) {
                         if (aan || uit) {
-                            pennyworth.switchDevice(elms[0], aan ? 'On' : 'Off', aan ? 255 : 0);
+                            pennyworth.switchDevice(elms, aan ? 'On' : 'Off', aan ? 255 : 0);
                         }
                     }
                 }
@@ -83,12 +85,28 @@ var pennyworth = pennyworth || {
         console.log(ev);
     },
 
+    connectMQTT: function(ev) {
+        var unique = new Date().getTime();
+        pennyworth.mqtt = new Paho.MQTT.Client(
+            document.querySelector('#mqtt-host').value,
+            parseInt(document.querySelector('#mqtt-port').value),
+            'pennyworth-'+unique
+        );
+
+        pennyworth.mqtt.onMessageArrived = pennyworth.mqttMessage;
+        pennyworth.mqtt.connect({
+            onSuccess: pennyworth.mqttConnected,
+            onFailure: pennyworth.mqttFailed
+        });
+    },
+
     mqttMessage: function(data) {
         var js = JSON.parse(data.payloadString);
 
         if (typeof js === 'object') {
-            if (js.switchType.toLowerCase() == "on/off") {
-                pennyworth.log("Status", js.name, ["idx " + js.idx, "value " + js.nvalue]);
+            if (js.switchType.toLowerCase() == "on/off" ||
+                (js.switchType.toLowerCase() == "dimmer" && js.stype.toLowerCase() == "rgbw") ) {
+                pennyworth.log("Status", js.name, ["idx " + js.idx, "nvalue " + js.nvalue, "svalue " + js.svalue, "switchType " + js.switchType]);
                 pennyworth.checkNewDevice(js);
             }
         }
@@ -97,30 +115,48 @@ var pennyworth = pennyworth || {
     mqttConnected: function() {
         pennyworth.log("MQTT Verbonden", "ws://" + pennyworth.mqtt.host + ":" + pennyworth.mqtt.port);
         pennyworth.mqtt.subscribe(pennyworth.domoticzOut);
+        pennyworth.mqtt.onConnectionLost = pennyworth.mqttConnectionLost;
     },
 
-    switchDevice: function(idx, switchValue) {
-        var obj = {
-            "command": "switchlight",
-            "idx": parseInt(idx),
-            "switchcmd": switchValue
+    mqttFailed: function() {
+        pennyworth.log("MQTT Niet verbonden", "ws://" + pennyworth.mqtt.host + ":" + pennyworth.mqtt.port);
+    },
+
+    mqttConnectionLost: function(obj) {
+        console.log(obj);
+        pennyworth.log("MQTT Verbroken", message, code);
+        pennyworth.connectMQTT();
+    },
+
+    switchDevice: function(elm, switchValue) {
+        var switchType = elm[2].toLowerCase();
+
+        if (switchType == "on/off") {
+            var obj = {
+                "command": "switchlight",
+                "idx": parseInt(elm[0]),
+                "switchcmd": switchValue
+            }
+
+            pennyworth.log("Verzend", "idx " + elm[0], switchValue);
+
+            var message = new Paho.MQTT.Message(JSON.stringify(obj));
+            message.destinationName = pennyworth.domoticzIn;
+            pennyworth.mqtt.send(message);
+        } else {
+            pennyworth.log("TODO", "Switchtype nog niet ondersteund", elm);
         }
-
-        pennyworth.log("Verzend", "idx " + idx, switchValue);
-
-        var message = new Paho.MQTT.Message(JSON.stringify(obj));
-        message.destinationName = pennyworth.domoticzIn;
-        pennyworth.mqtt.send(message);
     },
 
     checkNewDevice: function(obj) {
-        var str = obj.idx + "," + obj.name;
+        var str = obj.idx + "," + obj.name + "," + obj.switchType;
         str = str.trim();
 
         if (pennyworth.devices.indexOf(str) == -1) {
             pennyworth.devices.push(str);
 
-            document.querySelector("#devices").innerHTML += str + "\n";
+            document.querySelector("#devices").innerHTML = pennyworth.devices.join("\n");
+            localStorage.setItem("devices", document.querySelector("#devices").innerHTML);
         }
     },
 
@@ -141,6 +177,30 @@ var pennyworth = pennyworth || {
         var elms = document.querySelectorAll('div.log-message');
         if (elms.length > pennyworth.logThreshold) {
             elms[0].parentNode.removeChild(elms[0]);
+        }
+    },
+
+    restoreVariables: function() {
+        if (localStorage.getItem("engine-threshold")) {
+            document.querySelector("#engine-threshold").value = parseFloat(localStorage.getItem("engine-threshold"));
+            pennyworth.threshold = parseFloat(localStorage.getItem("engine-threshold"));
+        }
+
+        if (localStorage.getItem("mqtt-host")) {
+            document.querySelector("#mqtt-host").value = localStorage.getItem("mqtt-host");
+        }
+
+        if (localStorage.getItem("mqtt-port")) {
+            document.querySelector("#mqtt-port").value = localStorage.getItem("mqtt-port");
+        }
+
+        if (localStorage.getItem("devices")) {
+            pennyworth.devices = localStorage.getItem("devices").trim().split("\n");
+            document.querySelector("#devices").innerHTML = pennyworth.devices.join("\n");
+        }
+
+        if (localStorage.getItem("mqtt-host") && localStorage.getItem("mqtt-host")) {
+            pennyworth.connectMQTT();
         }
     }
 

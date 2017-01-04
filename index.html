@@ -3,15 +3,15 @@
     <head>
         <title>Alfred Pennyworth</title>
         <script src="js/pennyworth.js"></script>
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.min.js" type="text/javascript"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js" type="text/javascript"></script>
     </head>
     <body>
         <div id="settings">
             <label for="engine-threshold">Threshold</label>
             <input id="engine-threshold" type="range" min="0" max="1" value="0.5" step="0.1" />
         </div>
-        <input type="text" id="mqtt-host" value="192.168.1.22" />
-        <input type="text" id="mqtt-port" value="9001" />
+        <input type="text" id="mqtt-host" value="" placeholder="MQTT Host" />
+        <input type="text" id="mqtt-port" value="" placeholder="MQTT WS Port" />
         <input type="button" id="mqtt-connect" value="->">
         <br />
         <textarea id="devices" rows="10" cols="50"></textarea>
