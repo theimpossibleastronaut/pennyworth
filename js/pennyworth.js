@@ -1,7 +1,9 @@
 var pennyworth = pennyworth || {
 
     engine: null,
+    keyword: "alfred",
     mqtt: null,
+    mqttReconnectTimeout: 3000,
     threshold: 0.5,
     logThreshold: 20,
     domoticzIn: "domoticz/in",
@@ -39,6 +41,11 @@ var pennyworth = pennyworth || {
             localStorage.setItem("devices", ev.target.value);
         });
 
+        document.querySelector("#keyword").addEventListener("change", function(ev) {
+            localStorage.setItem("keyword", ev.target.value);
+            pennyworth.keyword = ev.target.value.trim().toLowerCase();
+        });
+
         document.querySelector("#mqtt-connect").addEventListener("click", pennyworth.connectMQTT);
 
     },
@@ -61,12 +68,14 @@ var pennyworth = pennyworth || {
             var aan = (str.indexOf("aan") > -1);
             var uit = (str.indexOf("uit") > -1);
 
-            for (var i = 0; i < pennyworth.devices.length; i++) {
-                var elms = pennyworth.devices[i].split(",");
-                if (elms.length > 1) {
-                    if (str.indexOf(elms[1].toLowerCase()) > -1) {
-                        if (aan || uit) {
-                            pennyworth.switchDevice(elms, aan ? 'On' : 'Off', aan ? 255 : 0);
+            if (str.indexOf(pennyworth.keyword) > -1) {
+                for (var i = 0; i < pennyworth.devices.length; i++) {
+                    var elms = pennyworth.devices[i].split(",");
+                    if (elms.length > 1) {
+                        if (str.indexOf(elms[1].toLowerCase().split("_").join(" ")) > -1) {
+                            if (aan || uit) {
+                                pennyworth.switchDevice(elms, aan ? 'On' : 'Off', aan ? 255 : 0);
+                            }
                         }
                     }
                 }
@@ -124,7 +133,8 @@ var pennyworth = pennyworth || {
 
     mqttConnectionLost: function(obj) {
         pennyworth.log("MQTT Verbroken", obj.message, obj.code);
-        pennyworth.connectMQTT();
+
+        setTimeout(pennyworth.connectMQTT, pennyworth.mqttReconnectTimeout);
     },
 
     switchDevice: function(elm, switchValue) {
@@ -191,6 +201,11 @@ var pennyworth = pennyworth || {
 
         if (localStorage.getItem("mqtt-port")) {
             document.querySelector("#mqtt-port").value = localStorage.getItem("mqtt-port");
+        }
+
+        if (localStorage.getItem("keyword")) {
+            document.querySelector("#keyword").value = localStorage.getItem("keyword");
+            pennyworth.keyword = localStorage.getItem("keyword");
         }
 
         if (localStorage.getItem("devices")) {
