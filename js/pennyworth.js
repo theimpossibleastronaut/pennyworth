@@ -123,8 +123,7 @@ var pennyworth = pennyworth || {
     },
 
     mqttConnectionLost: function(obj) {
-        console.log(obj);
-        pennyworth.log("MQTT Verbroken", message, code);
+        pennyworth.log("MQTT Verbroken", obj.message, obj.code);
         pennyworth.connectMQTT();
     },
 
