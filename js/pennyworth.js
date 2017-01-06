@@ -72,7 +72,8 @@ var pennyworth = pennyworth || {
                 for (var i = 0; i < pennyworth.devices.length; i++) {
                     var elms = pennyworth.devices[i].split(",");
                     if (elms.length > 1) {
-                        if (str.indexOf(elms[1].toLowerCase().split("_").join(" ")) > -1) {
+                        if (str.indexOf(elms[1].toLowerCase().split("_").join(" ")) > -1 ||
+                            str.indexOf(elms[1].toLowerCase().split("_").join("")) > -1) {
                             if (aan || uit) {
                                 pennyworth.switchDevice(elms, aan ? 'On' : 'Off', aan ? 255 : 0);
                             }
