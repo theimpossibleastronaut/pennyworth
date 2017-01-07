@@ -40,7 +40,7 @@ class linguisticsEngine {
 
     buildGrammar() {
 
-        if ( this.devices.length < 1 ) {
+        if ( this.devices.length < 1 || this.devices[ 0 ].trim() == '' ) {
             return;
         }
 
