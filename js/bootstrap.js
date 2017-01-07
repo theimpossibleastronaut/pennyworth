@@ -20,11 +20,11 @@ let pwbootstrap = function() {
             'mqttPort': localStorage.getItem( 'mqtt-port' ) || '9001',
             'mqttUsername': localStorage.getItem( 'mqtt-username' ) || '',
             'mqttPassword': localStorage.getItem( 'mqtt-password' ) || '',
-            'mqttSsl': ( localStorage.getItem( 'mqtt-ssl' ) && localStorage.getItem( 'mqtt-ssl' ) + '' == 'true' ),
+            'mqttSsl': ( localStorage.getItem( 'mqtt-ssl' ) + '' == 'true' ),
             'mqttAutoConnect': ( localStorage.getItem( 'mqtt-host' ) && localStorage.getItem( 'mqtt-port' ) ),
             'devices': localStorage.getItem( 'devices' ) || "",
             'linguisticsEngine': linguisticsEngine,
-            'talkback': ( localStorage.getItem( 'talkback' ) && localStorage.getItem( 'talkback' ) + '' == 'true' ),
+            'talkback': ( localStorage.getItem( 'talkback' ) + '' == 'true' ),
             'domoticz': {
                 channelIn: 'domoticz/in',
                 channelOut: 'domoticz/out'
