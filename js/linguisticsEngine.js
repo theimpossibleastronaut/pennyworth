@@ -81,7 +81,7 @@ class linguisticsEngine {
         grammar ${namespace}.sentence;
         import <pennyworth.*>;
         public <actions> = aan | uit | inschakelen | uitschakelen | open | sluiten | openen;
-        public <sentence> = <keyword> <device>+ <actions>`;
+        public <sentence> = <keyword>* <device>+ <actions>*`;
 
         let grammarList = new this.speechGrammarListClass();
         grammarList.addFromString( keywordGrammarString, 0.8 );
@@ -168,10 +168,29 @@ class linguisticsEngine {
     }
 
     talkback( string ) {
+        if ( typeof window.speechSynthesis === undefined ) {
+            return;
+        }
+
         var utt = new SpeechSynthesisUtterance( string );
         utt.lang = this.language.split( '_' ).join( '-' );
+        utt.voice = this.talkbackVoice;
 
         let ss = window.speechSynthesis;
         ss.speak( utt );
+    }
+
+    setTalkbackVoice( voiceURI ) {
+        if ( typeof window.speechSynthesis === undefined ) {
+            return;
+        }
+
+        let voices = window.speechSynthesis.getVoices();
+
+        for ( let voice of voices ) {
+            if ( voice.voiceURI == voiceURI && voice.lang == this.language.split( '_' ).join( '-' ) ) {
+                this.talkbackVoice = voice;
+            }
+        }
     }
 }

@@ -8,6 +8,10 @@ class pennyworth {
         this.restoreSettings();
         this.bindSettings();
 
+        if ( typeof window.speechSyntesis !== undefined ) {
+            window.speechSynthesis.onvoiceschanged = this.populateVoiceList.bind( this );
+        }
+
         this.speechRecognitionEngine = new this.configuration.speechRecognitionEngine();
         this.linguistics = new this.configuration.linguisticsEngine(
             this.speechRecognitionEngine,
@@ -16,10 +20,10 @@ class pennyworth {
             this.devices
         );
 
+        this.linguistics.setTalkbackVoice( this.configuration.talkbackVoice );
+
         this.configureSpeechRecognitionEngine();
         this.startSpeechRecognitionEngine();
-
-        this.talkback( false, this.configuration.speechRecognitionKeyword + ' tot uw dienst' );
 
         if ( this.configuration.mqttAutoConnect ) {
             this.connectMQTT();
@@ -37,6 +41,7 @@ class pennyworth {
         this.speechRecognitionEngine.onend = this.startSpeechRecognitionEngine.bind( this );
         this.speechRecognitionEngine.onerror = this.onSpeechRecognitionEngineError.bind( this );
         this.speechRecognitionEngine.onresult = this.onSpeechRecognitionEngineResult.bind( this );
+        this.speechRecognitionEngine.onnomatch = this.onSpeechRecognitionEngineNoMatch.bind( this );
     }
 
     startSpeechRecognitionEngine( ev ) {
@@ -91,12 +96,20 @@ class pennyworth {
                 }
             } else if (
                  lastElem.length > 0 &&
-                 lastElem[ 0 ].transcript &&
-                 lastElem[ 0 ].confidence >= this.configuration.speechRecognitionThreshold ) {
+                 lastElem[ 0 ].transcript ) {
 
-                this.talkback( 'notsure', lastElem[ 0 ].transcript );
+                this.log( 'Niet herkend', lastElem[ 0 ].transcript, lastElem[ 0 ].confidence );
+            } else {
+                this.log( 'Niet herkend', 'Geen transcriptie' );
             }
+        } else {
+            this.log( 'Niet herkend', 'Geen resultaten' );
         }
+    }
+
+    onSpeechRecognitionEngineNoMatch( ev ) {
+        this.log( 'Niet herkend', 'Geen overeenkomsten' );
+        console.log( ev );
     }
 
     // -------------------------------------------------------------------------
@@ -212,6 +225,7 @@ class pennyworth {
         document.querySelector( '#devices' ).value = this.configuration.devices;
         document.querySelector( '#speech-recognition-keyword' ).value = this.configuration.speechRecognitionKeyword;
         document.querySelector( '#talkback' ).checked = this.configuration.talkback;
+        document.querySelector( '#voicelist' ).value = this.configuration.talkbackVoice;
 
         this.devices = this.configuration.devices.trim().split("\n");
     }
@@ -258,6 +272,14 @@ class pennyworth {
             localStorage.setItem( 'talkback', ev.target.checked );
         }.bind( this ));
 
+        document.querySelector( '#voicelist' ).addEventListener( 'change', function( ev ) {
+            this.configuration.talkbackVoice = ev.target.value;
+            localStorage.setItem( 'talkback-voice', ev.target.value );
+            this.linguistics.setTalkbackVoice( ev.target.value );
+
+            this.talkback( false, this.configuration.speechRecognitionKeyword + ' tot uw dienst' );
+        }.bind( this ));
+
         document.querySelector( '#speech-recognition-keyword' ).addEventListener( 'change', function( ev ) {
             localStorage.setItem( 'speech-recognition-keyword', ev.target.value.trim().toLowerCase() );
             this.configuration.speechRecognitionKeyword = ev.target.value.trim().toLowerCase();
@@ -269,6 +291,25 @@ class pennyworth {
 
     // -------------------------------------------------------------------------
     // Utility
+
+    populateVoiceList() {
+        let voices = window.speechSynthesis.getVoices();
+        let lang = this.configuration.speechLanguage.split( '_' ).join( '-' );
+
+        document.querySelector( '#voicelist' ).innerHTML = '';
+
+        for ( let voice of voices ) {
+            if ( voice.lang == lang ) {
+                let option = `<option value='${voice.voiceURI}'>${voice.name}</option>`;
+                document.querySelector( '#voicelist' ).innerHTML += option;
+            }
+        }
+
+        document.querySelector( '#voicelist' ).value = this.configuration.talkbackVoice;
+        this.linguistics.setTalkbackVoice( this.configuration.talkbackVoice )
+
+        this.talkback( false, this.configuration.speechRecognitionKeyword + ' tot uw dienst' );
+    }
 
     talkback( type, transcript ) {
         if ( this.configuration.talkback ) {

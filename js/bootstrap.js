@@ -1,4 +1,9 @@
 let pwbootstrap = function() {
+
+    if ( document.visibilityState == 'prerender' ) {
+        return;
+    }
+
     let speechRecognitionEngine;
     if ( typeof speechRecognition !== 'undefined') {
         speechRecognitionEngine = speechRecognition;
@@ -25,6 +30,7 @@ let pwbootstrap = function() {
             'devices': localStorage.getItem( 'devices' ) || "",
             'linguisticsEngine': linguisticsEngine,
             'talkback': ( localStorage.getItem( 'talkback' ) + '' == 'true' ),
+            'talkbackVoice': localStorage.getItem( 'talkback-voice' ) || '',
             'domoticz': {
                 channelIn: 'domoticz/in',
                 channelOut: 'domoticz/out'
