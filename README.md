@@ -10,6 +10,9 @@ Domoticz doesn't allow listing of devices over MQTT so in order to use your devi
 
 HARDCODED FOR DUTCH AT THE MOMENT. Only requires small changes for your locale, but  was no prio now.
 
+[![Demo](http://img.youtube.com/vi/QidlnaabhJA/0.jpg)](http://www.youtube.com/watch?v=QidlnaabhJA)
+
+
 # Installation
 ## Requirements
 Domoticz, MQTT 3.1 or 3.1.1 broker that's available over websockets (Mosquitto build from source, emqtt, hivemq or apache apollo).
